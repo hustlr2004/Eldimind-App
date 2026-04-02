@@ -4,7 +4,12 @@ import { admin, isFirebaseInitialized, initFirebase } from '../config/firebase';
 import { User } from '../models/User';
 import { validateRequest } from '../middleware/validate';
 import { firebaseAuth } from '../middleware/firebaseAuth';
-import { createSessionToken, getSessionCookieName, getSessionMaxAgeMs } from '../services/sessionService';
+import {
+  createSessionToken,
+  getSessionCookieName,
+  getSessionCookieOptions,
+  getSessionMaxAgeMs,
+} from '../services/sessionService';
 
 const router = express.Router();
 
@@ -28,12 +33,7 @@ async function resolveUidFromToken(idToken: string) {
 }
 
 function setSessionCookie(res: express.Response, token: string, rememberMe?: boolean) {
-  res.cookie(getSessionCookieName(), token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: getSessionMaxAgeMs(rememberMe),
-  });
+  res.cookie(getSessionCookieName(), token, getSessionCookieOptions(rememberMe));
 }
 
 // Verify ID token (client can send { idToken } or Authorization: Bearer ...)
@@ -135,11 +135,8 @@ router.get('/me', firebaseAuth, async (req, res) => {
 });
 
 router.post('/logout', (_req, res) => {
-  res.clearCookie(getSessionCookieName(), {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-  });
+  const { maxAge: _maxAge, ...cookieOptions } = getSessionCookieOptions();
+  res.clearCookie(getSessionCookieName(), cookieOptions);
   res.json({ ok: true, loggedOut: true });
 });
 

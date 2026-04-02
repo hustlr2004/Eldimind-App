@@ -35,13 +35,14 @@ router.post(
 
       let imageUrl = req.body.imageUrl as string | undefined;
       let fileName: string | undefined;
-      let storageType: 'local' | 'remote' = imageUrl ? 'remote' : 'local';
+      let storageType: 'local' | 'remote' | 'cloudinary' = imageUrl ? 'remote' : 'local';
       const mimeType = req.body.mimeType || 'image/jpeg';
 
       if (!imageUrl && req.body.imageBase64) {
         const stored = await saveBase64Photo(req.body.imageBase64, mimeType);
         imageUrl = stored.publicUrl;
         fileName = stored.fileName;
+        storageType = stored.storageType;
       }
 
       const photo = new PhotoJournal({

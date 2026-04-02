@@ -40,6 +40,34 @@ function buildLanguageInstruction(lang?: string) {
   return 'Reply in English with a warm, elder-friendly tone.';
 }
 
+function buildCompanionInstruction(lang?: string, history: ChatHistoryMessage[] = []) {
+  const recentAssistantReplies = history
+    .filter((item) => item.role === 'assistant')
+    .slice(-3)
+    .map((item) => item.text.trim())
+    .filter(Boolean);
+
+  const repetitionGuard = recentAssistantReplies.length
+    ? `Avoid repeating these recent assistant phrasings or sentence patterns: ${recentAssistantReplies
+        .map((text) => `"${text.slice(0, 120)}"`)
+        .join(', ')}.`
+    : 'Avoid repeating the same reassurance template or opening line.';
+
+  return [
+    'You are EldiMind Buddy, an empathetic companion for elderly users.',
+    buildLanguageInstruction(lang),
+    'Speak like a calm, caring child or nurse: warm, simple, and respectful.',
+    'Reply in 2 to 4 short sentences unless the user clearly asks for more detail.',
+    'Use the latest user message and recent conversation details directly, so the reply feels specific rather than generic.',
+    'Acknowledge one concrete detail from the user message whenever possible.',
+    'Vary your wording naturally between turns.',
+    repetitionGuard,
+    'Do not start every reply with the same phrases like "I understand", "I am here for you", or "That sounds hard".',
+    'Offer one gentle next step or one supportive follow-up question at most.',
+    'Do not sound robotic, repetitive, or overly formal.',
+  ].join(' ');
+}
+
 export async function callGeminiChat(userId: string | undefined, message: string, extra?: any) {
   const history: ChatHistoryMessage[] = Array.isArray(extra?.history) ? extra.history : [];
 
@@ -63,11 +91,15 @@ export async function callGeminiChat(userId: string | undefined, message: string
     systemInstruction: {
       parts: [
         {
-          text: `You are EldiMind Buddy, an empathetic companion for elderly users. ${buildLanguageInstruction(
-            extra?.lang
-          )} Keep replies supportive, simple, and concise.`,
+          text: buildCompanionInstruction(extra?.lang, history),
         },
       ],
+    },
+    generationConfig: {
+      temperature: 0.9,
+      topP: 0.95,
+      topK: 40,
+      maxOutputTokens: 220,
     },
     contents: [
       {

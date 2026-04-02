@@ -160,6 +160,20 @@ textarea {
   background: var(--surface);
 }
 
+.buddy-actions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.mic-button {
+  min-height: 52px;
+  font-weight: 700;
+}
+
+.mic-status {
+  margin: 0;
+}
+
 .primary-button {
   min-height: 56px;
   border-radius: 18px;

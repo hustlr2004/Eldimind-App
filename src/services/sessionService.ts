@@ -1,9 +1,11 @@
 import crypto from 'crypto';
+import type { CookieOptions } from 'express';
 
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'eldimind_session';
 const SESSION_SECRET = process.env.JWT_SECRET || 'change-me';
 const REMEMBER_ME_DAYS = Number(process.env.SESSION_REMEMBER_ME_DAYS || 30);
 const DEFAULT_HOURS = Number(process.env.SESSION_DEFAULT_HOURS || 12);
+const SESSION_COOKIE_SAME_SITE = process.env.SESSION_COOKIE_SAME_SITE || 'auto';
 
 type SessionPayload = {
   uid: string;
@@ -29,6 +31,23 @@ export function getSessionCookieName() {
 
 export function getSessionMaxAgeMs(rememberMe?: boolean) {
   return (rememberMe ? REMEMBER_ME_DAYS * 24 : DEFAULT_HOURS) * 60 * 60 * 1000;
+}
+
+function resolveSameSite(): CookieOptions['sameSite'] {
+  if (SESSION_COOKIE_SAME_SITE === 'strict') return 'strict';
+  if (SESSION_COOKIE_SAME_SITE === 'lax') return 'lax';
+  if (SESSION_COOKIE_SAME_SITE === 'none') return 'none';
+  return process.env.NODE_ENV === 'production' ? 'none' : 'lax';
+}
+
+export function getSessionCookieOptions(rememberMe?: boolean): CookieOptions {
+  const sameSite = resolveSameSite();
+  return {
+    httpOnly: true,
+    sameSite,
+    secure: process.env.NODE_ENV === 'production' || sameSite === 'none',
+    maxAge: getSessionMaxAgeMs(rememberMe),
+  };
 }
 
 export function createSessionToken(input: { uid: string; email?: string; rememberMe?: boolean }) {
