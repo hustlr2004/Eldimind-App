@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+frontend/.env
+serviceAccountKey.json
+coverage/
+.DS_Store
+/.vscode/
