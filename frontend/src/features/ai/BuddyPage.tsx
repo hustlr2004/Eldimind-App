@@ -39,6 +39,7 @@ export function BuddyPage() {
   const [draft, setDraft] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
 
   useEffect(() => {
@@ -89,6 +90,7 @@ export function BuddyPage() {
     event.preventDefault();
     const trimmed = draft.trim();
     if (!trimmed) return;
+    setDraftError(null);
     sendMutation.mutate(trimmed);
   }
 
@@ -112,6 +114,27 @@ export function BuddyPage() {
   }
 
   const messages = [...(chatQuery.data?.messages || [])].reverse();
+  const visibleMessages = sendMutation.isPending
+    ? [
+        ...messages,
+        {
+          role: 'user' as const,
+          text: draft.trim(),
+          createdAt: new Date().toISOString(),
+        },
+        {
+          role: 'assistant' as const,
+          text: 'EldiMind Buddy is thinking...',
+          createdAt: new Date().toISOString(),
+        },
+      ]
+    : messages;
+
+  useEffect(() => {
+    if (sendMutation.error) {
+      setDraftError((sendMutation.error as Error).message);
+    }
+  }, [sendMutation.error]);
 
   return (
     <section className="dashboard-page">
@@ -124,7 +147,8 @@ export function BuddyPage() {
       <div className="dashboard-split">
         <div className="panel">
           <h2>{t('conversation')}</h2>
-          <ChatThread messages={messages} emptyMessage={t('buddyEmpty')} />
+          {chatQuery.error ? <p className="error-text">{(chatQuery.error as Error).message}</p> : null}
+          <ChatThread messages={visibleMessages} emptyMessage={t('buddyEmpty')} />
         </div>
         <div className="panel">
           <h2>{t('sendMessage')}</h2>
@@ -147,6 +171,7 @@ export function BuddyPage() {
               </p>
             </div>
             {speechError ? <p className="error-text">{speechError}</p> : null}
+            {draftError ? <p className="error-text">{draftError}</p> : null}
             <button className="primary-button" disabled={sendMutation.isPending} type="submit">
               {sendMutation.isPending ? t('sending') : t('send')}
             </button>
